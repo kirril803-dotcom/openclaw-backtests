@@ -2,3 +2,4 @@ strategy_name,roi,max_drawdown,sharpe_ratio,sortino_ratio,expected_value,num_tra
 AlgoFox MultiTF SuperTrend v1.5,36.13%,0.35%,2.459,N/A,434.76,831
 Casper SMC 5m ORB Retest,140.41%,10.40%,N/A,N/A,78.01,18
 EHMA + Gaussian Scalp,135.00%,44.12%,N/A,N/A,39.36,343
+Silver Early Pulse v11.0,23.11%,3.83%,N/A,N/A,35.66,66
