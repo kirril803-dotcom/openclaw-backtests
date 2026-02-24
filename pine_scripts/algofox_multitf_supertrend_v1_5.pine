@@ -1,0 +1,140 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Algofox
+
+//@version=5
+strategy("AlgoFox MultiTF SuperTrend v1.5", shorttitle="AlgoFox MultiTF SuperTrend", overlay=true, default_qty_type=strategy.fixed, default_qty_value=1, initial_capital=300000, currency=currency.NONE, commission_value=0, commission_type=strategy.commission.percent, process_orders_on_close=false, calc_on_every_tick=true, calc_on_order_fills=true)
+
+////======================================================
+paraTradeMode = input.string(title='Trade Mode', defval='Both', options=['Both', 'LongOnly', 'ShortOnly'], group = "Trade Settings")
+paraSystemMode = input.session(defval="Intraday", title="System Mode", options=["Intraday", "Positional"], group = "Trade Settings")
+s = input.session(title='Intraday Start Session:', defval='0915-1445', group='Trade Settings')
+e = input.session(title='Intraday End Session:', defval='1500-1515', group='Trade Settings')
+
+paraSTmultiplier = input.float(3, title="ST Multiplier", minval=1)
+paraSTperiods = input.int(10, title="ST Periods", minval = 1)
+paraHeikinAshiMode = input.bool(false, "Consider Heikin Ashi Candles ?")
+
+paraSTMutliTF = "On"
+paraTFCtr = input.int(defval=1, title="No. of Timeframe(s)", minval=1, maxval=4)
+paraTF1 = input.timeframe(defval="15", title="Timeframe 1")
+paraTF2 = input.timeframe(defval="30", title="Timeframe 2")
+paraTF3 = input.timeframe(defval="60", title="Timeframe 3")
+paraTF4 = input.timeframe(defval="D", title="Timeframe 4")
+
+paraTGTMode = input.string(defval="%", title="Target : ", options=["Off", "%", "Pts"], inline = "TGT", group = "Target Settings")
+paraTGT1 = input.float(1, "T1 : ", minval = 0, inline = "TGT", group = "Target Settings")
+paraTGT = input.float(2, "T2 : ", minval = 0.1, inline = "TGT", group = "Target Settings")
+
+paraSLMode = input.string(defval="%", title="Stoploss : ", options=["Off", "%", "Pts"], inline = "SL", group = "Stoploss Settings")
+paraSL = input.float(1, "Value : ", minval = 0.1, inline = "SL", group = "Stoploss Settings")
+
+paraTSLMode = input.string(defval="%", title="Trail SL : ", options=["Off", "%", "Pts"], inline = "TSL", group = "TSL Settings")
+paraTSL = input.float(1, "Value : ", minval = 0.1, inline = "TSL", group = "TSL Settings")
+
+paraShowDashboard = input.bool(true, "Show Strategy Dashboard")
+////======================================================
+
+////======================================================
+grpAlgo = "Algo Setup"
+paraExchange = input.string(title='Exchange', defval='delta', group=grpAlgo)
+paraCode = input.string(title='Code', defval='XXXXXX', group=grpAlgo)
+paraQtyType = input.string(title="Quantity Type", defval='Fixed',options=['Fixed','Exposure'], group=grpAlgo)
+paraQty = input.float(title='Quantity ', defval=1, minval=0, group=grpAlgo, tooltip='Qty in Lots for Futures')
+paraT1Qty = input.float(title='Target-1 Exit Qty (%)', defval=0, minval=0, maxval = 100, group=grpAlgo, tooltip='Qty in Percentage')
+paraMaxProfit = input.int(0, "Max Profit Per Trade", 0, group=grpAlgo, tooltip='Exit on Max. Profit in Rs.')
+paraMaxLoss = input.int(0, "Max Loss Per Trade", 0, group=grpAlgo, tooltip='Exit on Max. Loss in Rs.')
+////======================================================
+
+////======================================================
+haTicker = syminfo.tickerid
+if (paraHeikinAshiMode)
+    haTicker := ticker.heikinashi(syminfo.tickerid)
+
+GetSuperTrend(isLocal) =>
+    [_SuperTrend, _STTrend] = ta.supertrend(paraSTmultiplier, paraSTperiods)
+    resultST = _SuperTrend
+    resiltDir = _STTrend
+    [resultST, resiltDir]
+
+////======================================================
+st = paraSystemMode=="Positional" ? true : not na(time(timeframe.period, s))
+et = paraSystemMode=="Positional" ? false : not na(time(timeframe.period, e))
+
+[SuperTrend1, STTrend1] = request.security(haTicker, paraTF1, GetSuperTrend(false), lookahead=barmerge.lookahead_off)
+[SuperTrend2, STTrend2] = request.security(haTicker, paraTF2, GetSuperTrend(false), lookahead=barmerge.lookahead_off)
+[SuperTrend3, STTrend3] = request.security(haTicker, paraTF3, GetSuperTrend(false), lookahead=barmerge.lookahead_off)
+[SuperTrend4, STTrend4] = request.security(haTicker, paraTF4, GetSuperTrend(false), lookahead=barmerge.lookahead_off)
+
+ST1Long = (paraSTMutliTF=="On" and paraTFCtr >= 1) ? STTrend1==-1 : true
+ST1Short = (paraSTMutliTF=="On" and paraTFCtr >= 1) ? STTrend1==1 : true
+ST1LongExit = (paraSTMutliTF=="On" and paraTFCtr >= 1) ? STTrend1==1 : false
+ST1ShortExit = (paraSTMutliTF=="On" and paraTFCtr >= 1) ? STTrend1==-1 : false
+
+ST2Long = (paraSTMutliTF=="On" and paraTFCtr >= 2) ? STTrend2==-1 : true
+ST2Short = (paraSTMutliTF=="On" and paraTFCtr >= 2) ? STTrend2==1 : true
+ST2LongExit = (paraSTMutliTF=="On" and paraTFCtr >= 2) ? STTrend2==1 : false
+ST2ShortExit = (paraSTMutliTF=="On" and paraTFCtr >= 2) ? STTrend2==-1 : false
+
+ST3Long = (paraSTMutliTF=="On" and paraTFCtr >= 3) ? STTrend3==-1 : true
+ST3Short = (paraSTMutliTF=="On" and paraTFCtr >= 3) ? STTrend3==1 : true
+ST3LongExit = (paraSTMutliTF=="On" and paraTFCtr >= 3) ? STTrend3==1 : false
+ST3ShortExit = (paraSTMutliTF=="On" and paraTFCtr >= 3) ? STTrend3==-1 : false
+
+ST4Long = (paraSTMutliTF=="On" and paraTFCtr >= 4) ? STTrend4==-1 : true
+ST4Short = (paraSTMutliTF=="On" and paraTFCtr >= 4) ? STTrend4==1 : true
+ST4LongExit = (paraSTMutliTF=="On" and paraTFCtr >= 4) ? STTrend4==1 : false
+ST4ShortExit = (paraSTMutliTF=="On" and paraTFCtr >= 4) ? STTrend4==-1 : false
+
+eSignal = 0
+eBuy = ST1Long and ST2Long and ST3Long and ST4Long
+eShort = ST1Short and ST2Short and ST3Short and ST4Short
+eSell = eShort or ST1LongExit or ST2LongExit or ST3LongExit or ST4LongExit
+eCover = eBuy or ST1ShortExit or ST2ShortExit or ST3ShortExit or ST4ShortExit
+eSignal := eBuy ? 1 : eShort ? -1 : eSell or eCover ? 0 : eSignal[1]
+
+MainSignal = 0
+BuySignal = paraTradeMode!="ShortOnly" and st and eBuy and barstate.isconfirmed and (nz(MainSignal[1]) <= 0)
+ShortSignal = paraTradeMode!="LongOnly" and st and eShort and barstate.isconfirmed and (nz(MainSignal[1]) >= 0)
+SellSignal = (((ShortSignal or eSell) and barstate.isconfirmed) or et) and (nz(MainSignal[1]) == 1)
+CoverSignal = (((BuySignal or eCover) and barstate.isconfirmed) or et) and (nz(MainSignal[1]) == -1)
+MainSignal := BuySignal ? 1 : ShortSignal ? -1 : ((SellSignal and MainSignal[1] > 0) or strategy.position_size == 0) ? 0 : ((CoverSignal and MainSignal[1] < 0) or strategy.position_size == 0) ? 0 : MainSignal[1]
+
+////======================================================
+// Entry logic
+if BuySignal and strategy.position_size < 0
+    strategy.entry('BUY', strategy.long, comment='Buy', qty=BuyTradeQty)
+else if BuySignal and strategy.position_size == 0
+    strategy.entry('BUY', strategy.long, comment='Buy', qty=BuyTradeQty)
+
+if ShortSignal and strategy.position_size > 0
+    strategy.entry('SHORT', strategy.short, comment='Short', qty=ShortTradeQty)
+else if ShortSignal and strategy.position_size == 0
+    strategy.entry('SHORT', strategy.short, comment='Short', qty=ShortTradeQty)
+
+////======================================================
+// Exit logic (simplified)
+var float BuyPrice = na
+var float ShortPrice = na
+
+ut = (paraTGTMode != "Off")
+us = (paraSLMode != "Off")
+
+if (strategy.position_size > 0 and strategy.position_size[1] <= 0)
+    BuyPrice := strategy.position_avg_price
+    
+if (strategy.position_size < 0 and strategy.position_size[1] >= 0)
+    ShortPrice := strategy.position_avg_price
+
+// Exit on end of session
+if (et or (SellSignal and (not ShortSignal))) and strategy.position_size > 0
+    strategy.close(id='BUY', comment="Sell")
+
+if (et or (CoverSignal and (not BuySignal))) and strategy.position_size < 0
+    strategy.close(id='SHORT', comment="Cover")
+
+////======================================================
+// Plotting
+plot(paraSTMutliTF=="On" and paraTFCtr >= 1 ? SuperTrend1 : na, color=(STTrend1==-1?color.green:STTrend1==1?color.red:color.yellow))
+plot(paraSTMutliTF=="On" and paraTFCtr >= 2 ? SuperTrend2 : na, color=(STTrend2==-1?color.green:STTrend2==1?color.red:color.yellow))
+plot(paraSTMutliTF=="On" and paraTFCtr >= 3 ? SuperTrend3 : na, color=(STTrend3==-1?color.green:STTrend3==1?color.red:color.yellow))
+plot(paraSTMutliTF=="On" and paraTFCtr >= 4 ? SuperTrend4 : na, color=(STTrend4==-1?color.green:STTrend4==1?color.red:color.yellow))
