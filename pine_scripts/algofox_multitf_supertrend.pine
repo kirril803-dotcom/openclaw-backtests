@@ -1,0 +1,20 @@
+// AlgoFox MultiTF SuperTrend v1.5 - Pine Script Strategy
+// Source: TradingView - Popular
+// Type: Pine Script strategy (has built-in buy/sell signals)
+// Code visible in browser but too large to copy fully
+
+// This is a Multi-Timeframe SuperTrend strategy with:
+// - BuySignal, ShortSignal, SellSignal, CoverSignal
+// - SuperTrend indicator on multiple timeframes (15, 30, 60, D)
+// - Intraday and Positional modes
+// - Take Profit, Stop Loss, Trailing Stop Loss
+
+// To get full code: 
+// 1. Go to TradingView -> Scripts -> AlgoFox MultiTF SuperTrend v1.5
+// 2. Click "Source code" tab
+// 3. Copy all code
+
+// Strategy logic (simplified for Python conversion):
+// - Buy when all SuperTrend timeframes show bullish (-1)
+// - Short when all SuperTrend timeframes show bearish (1)
+// - Exit based on TP/SL/TSL settings

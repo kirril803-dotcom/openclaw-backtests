@@ -1,0 +1,5 @@
+pandas
+numpy
+talib
+backtesting
+pandas_ta
