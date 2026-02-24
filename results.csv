@@ -4,3 +4,16 @@ Casper SMC 5m ORB Retest,140.41%,10.40%,N/A,N/A,78.01,18
 EHMA + Gaussian Scalp,135.00%,44.12%,N/A,N/A,39.36,343
 Silver Early Pulse v11.0,23.11%,3.83%,N/A,N/A,35.66,66
 TASC 2026.03 One Percent A Week,62.48%,16.00%,0.079,0.191,0.92,544
+ma_crossover_9_21,39.86%,-53.86%,0.357,N/A,-3.66,1
+rsi_reversal,49.52%,-42.11%,0.595,N/A,10.85,1
+macd_crossover,48.52%,-59.01%,0.348,N/A,-5.52,1
+bollinger_bands,-1.63%,-7.67%,-0.227,N/A,nan,0
+supertrend,0.00%,-0.00%,nan,N/A,nan,0
+stochastic_oscillator,27.22%,-50.70%,0.312,N/A,-8.30,1
+parabolic_sar,5.18%,-67.66%,0.037,N/A,-3.02,1
+rsi_ma_cross,55.81%,-59.13%,0.375,N/A,29.24,1
+adx_trend,40.01%,-59.03%,0.310,N/A,-7.02,1
+awesome_oscillator,0.00%,-0.00%,nan,N/A,nan,0
+price_channel_breakout,0.00%,-0.00%,nan,N/A,nan,0
+rsi_oversold_overbought,49.52%,-42.11%,0.595,N/A,10.85,1
+ema_pullback,0.00%,-0.00%,nan,N/A,nan,0
