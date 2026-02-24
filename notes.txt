@@ -1,0 +1,16 @@
+# Notes
+
+## Strategies with 0 trades (skipped/invalid):
+
+1. bollinger_bands - Price never touched bands in dataset
+2. supertrend - No trend flips detected
+3. awesome_oscillator - AO never crossed zero
+4. price_channel_breakout - No channel breakouts
+5. ema_pullback - No EMA pullback signals
+
+## Issues:
+
+- Most strategies produce only 1 trade due to limited data (500 bars)
+- High BTC price ($60k+) causes margin issues with cash=1000
+- Using FractionalBacktest to handle fractional positions
+- Data range: 500 days of BTC daily data
