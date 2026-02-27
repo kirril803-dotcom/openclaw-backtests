@@ -45,3 +45,11 @@ EMA Cross + Trend,1385.43%,95.42%,N/A,N/A,N/A,30
 RSI + MACD,47.77%,39.00%,N/A,N/A,N/A,17
 Golden Cross (50/200),1183.93%,93.41%,N/A,N/A,N/A,4
 Mean Reversion,32.11%,58.64%,N/A,N/A,N/A,36
+SuperTrend (from Pine),740.08%,92.25%,N/A,N/A,N/A,26
+SuperTrend + RSI Filter,494.54%,89.44%,N/A,N/A,N/A,26
+One Percent A Week (TASC),134.66%,76.92%,N/A,N/A,N/A,84
+EMA Cross 9/21,1203.46%,93.73%,N/A,N/A,N/A,38
+SuperTrend + EMA Trend,898.15%,92.16%,N/A,N/A,N/A,24
+RSI Oversold,-1.14%,68.06%,N/A,N/A,N/A,21
+RSI + EMA Trend,55.96%,70.75%,N/A,N/A,N/A,20
+Golden Cross 50/200,1183.93%,93.41%,N/A,N/A,N/A,4
