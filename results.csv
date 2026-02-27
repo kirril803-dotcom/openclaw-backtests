@@ -30,3 +30,10 @@ Stochastic RSI,52.81%,-59.00%,0.358,N/A,N/A,1
 Bollinger Bands Reversion,33.89%,-33.11%,0.502,N/A,N/A,1
 VWAP Mean Reversion,33.25%,-43.23%,0.454,N/A,N/A,1
 MACD Divergence,50.86%,-58.98%,0.359,N/A,N/A,1
+RSI Oversold (Fixed),0.00%,-0.00%,N/A,N/A,N/A,0
+RSI Normalized,4623.00%,-62.69%,0.297,N/A,N/A,1
+RSI,-11.50%,N/A,N/A,N/A,N/A,24
+MACD Crossover,-27.91%,N/A,N/A,N/A,N/A,19
+EMA Cross,-6.45%,N/A,N/A,N/A,N/A,11
+RSI+MACD,-8.25%,N/A,N/A,N/A,N/A,3
+MACD Hist,-27.91%,N/A,N/A,N/A,N/A,19
