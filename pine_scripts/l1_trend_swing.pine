@@ -1,0 +1,34 @@
+// L1 Trend Swing Strategy - 142 lines
+//@version=6
+strategy("L1 Trend Swing Strategy", overlay = true, default_qty_type = strategy.percent_of_equity, default_qty_value = 10, commission_type = strategy.commission.percent, commission_value = 0.1)
+
+// EMA 1
+ema1 = input.int(50, "EMA 1")
+// EMA 2
+ema2 = input.int(200, "EMA 2")
+
+// Plot EMAs
+plot(ta.ema(close, ema1), color = color.blue, title = "EMA 1")
+plot(ta.ema(close, ema2), color = color.orange, title = "EMA 2")
+
+// Trend
+ema1 = ta.ema(close, ema1)
+ema2 = ta.ema(close, ema2)
+
+trend = ema1 > ema2 ? 1 : -1
+
+// Entry Logic
+bull = trend == 1 and trend[1] == -1
+bear = trend == -1 and trend[1] == 1
+
+// Long
+if (bull)
+    strategy.entry("Long", strategy.long)
+
+// Short
+if (bear)
+    strategy.entry("Short", strategy.short)
+
+// Exit
+strategy.close("Long", when = bear)
+strategy.close("Short", when = bull)
