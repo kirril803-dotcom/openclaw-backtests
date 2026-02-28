@@ -1,0 +1,133 @@
+//@version=6
+strategy("ICT Silver Bullet Momentum", overlay=true, initial_capital=10000, default_qty_type=strategy.percent_of_equity, default_qty_value=100)
+
+// --- 1. 輸入參數設定 ---
+// 時間區間設定 (預設為紐約 AM 銀彈時間 10:00 - 11:00 EST)
+kzSession = input.session("1000-1100", "銀彈時間 (Kill Zone)", tooltip="預設為美東時間。進場僅會在該時段的『第一根 K 線』觸發")
+kzTimezone = input.string("America/New_York", "時區設定")
+
+// 風險控管與盈虧比
+rrRatio = input.float(4, "固定盈虧比 (RR)", step=0.1, tooltip="止盈目標 = 止損距離 * 2")
+
+// 追蹤止盈設定
+useTrailing = input.bool(true, "啟用追蹤止盈")
+trailActivateRR = input.float(1.0, "觸發追蹤 (RR 倍數)", step=0.1, tooltip="當獲利達到 1 倍風險 (1R) 時，開始追蹤止損")
+trailOffsetRR = input.float(0.5, "回調距離 (RR 倍數)", step=0.1, tooltip="從最高點回落 0.5R 的距離即出廠")
+
+// --- 2. 銀彈時間 (Kill Zone) 判定 ---
+// 判斷當前 K 線是否在設定的時段內 (將時間戳記轉為布林值)
+inKzTime = time(timeframe.period, kzSession, kzTimezone)
+inKz = not na(inKzTime) // 如果不是 na，代表在時段內 (True)
+
+// 抓取時段的「開盤第一根 K 線」 (前一根不在時段內，當前這根在時段內)
+kzOpen = inKz and not inKz[1]
+
+// --- 3. 多時間級別 (MTF) 抓取前兩個小時的數據 ---
+// H1 代表「前 1 小時」，H2 代表「前 2 小時」
+[h1_c, h1_o, h1_v, h1_l] = request.security(syminfo.tickerid, "60", [close[1], open[1], volume[1], low[1]])
+[h2_c, h2_o, h2_v, h2_l] = request.security(syminfo.tickerid, "60", [close[2], open[2], volume[2], low[2]])
+
+// --- 4. 進場條件邏輯 ---
+// 條件 A: 前兩小時收盤皆為看多 (收大於開)
+isTwoBullish = (h1_c > h1_o) and (h2_c > h2_o)
+
+// 條件 B: 量增 (前 1 小時的量 > 前 2 小時的量)
+isVolIncreasing = h1_v > h2_v
+
+// 綜合進場信號
+longSetup = isTwoBullish and isVolIncreasing
+
+// --- 5. 執行交易與風險管理 ---
+var float tradeSL = na
+var float tradeTP = na
+var float entryPrice = na
+var float initialRisk = na
+var float maxHigh = na
+
+// 在銀彈時間開盤瞬間，且符合看多量增條件時進場
+if kzOpen and longSetup and strategy.position_size == 0
+    strategy.entry("SilverBullet", strategy.long, comment="SB Long")
+
+// 止損守「前低」(過去兩小時內的最低點)
+tradeSL := math.min(h1_l, h2_l)
+entryPrice := close
+initialRisk := entryPrice - tradeSL
+
+// 確保止損點合理 (防呆機制，避免發生除以零的錯誤)
+if initialRisk > 0
+    tradeTP := entryPrice + (initialRisk * rrRatio)
+    maxHigh := high
+else
+    // 如果遇到異常 K 線導致風險 <= 0，強制取消這筆交易設定
+    strategy.cancel("SilverBullet")
+    tradeSL := na
+
+// 持倉期間的追蹤止盈邏輯
+if strategy.position_size > 0
+    // 記錄持倉期間的最高價
+    maxHigh := math.max(maxHigh, high)
+    if useTrailing
+        // 計算目前的獲利倍數 (RR)
+        float currentRR = (maxHigh - entryPrice) / initialRisk
+        // 當獲利達到觸發點，啟動追蹤止損
+        if currentRR >= trailActivateRR
+            // 新止損位 = 最高價 - 允許回調的距離
+            float trailStopPrice = maxHigh - (initialRisk * trailOffsetRR)
+            // 止損線只能往上移，不能往下掉
+            tradeSL := math.max(tradeSL, trailStopPrice)
+    // 執行出廠
+    strategy.exit("Exit", "SilverBullet", stop=tradeSL, limit=tradeTP, comment_loss="SL/Trail", comment_profit="TP 1:2")
+
+// 重置變數
+if strategy.position_size == 0 and not kzOpen
+    tradeSL := na
+    tradeTP := na
+    maxHigh := na
+    entryPrice := na
+    initialRisk := na
+
+// --- 6. 視覺化繪圖 ---
+// 標示銀彈時間的背景色 (讓您清楚看到 Kill Zone 落在哪裡)
+bgcolor(inKz ? color.new(color.blue, 90) : na, title="Kill Zone Background")
+
+// 標示進場信號
+plotshape(kzOpen and longSetup and strategy.position_size[1] == 0, "Entry", shape.labelup, location.belowbar, color.green, size=size.small, text="SB Buy", textcolor=color.white)
+
+// 繪製止損止盈線
+plot(strategy.position_size > 0 ? tradeSL : na, "SL/Trail", color=color.red, style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size > 0 ? tradeTP : na, "TP Target", color=color.green, style=plot.style_linebr, linewidth=2)
+
+// --- 7. 策略統計與面板顯示 (計算最大連輸與勝率) ---
+var int closedTradesCount = 0
+var int currentLosingStreak = 0
+var int maxLosingStreak = 0
+var int winCount = 0
+
+// 當有新的交易平倉時，計算並更新統計數據
+if strategy.closedtrades > closedTradesCount
+    for i = closedTradesCount to strategy.closedtrades - 1
+        float profit = strategy.closedtrades.profit(i)
+        if profit > 0
+            winCount += 1
+            currentLosingStreak := 0 // 獲利則中斷連輸
+        else if profit < 0
+            currentLosingStreak += 1 // 虧損則增加連輸計數
+    maxLosingStreak := math.max(maxLosingStreak, currentLosingStreak) // 刷新最大連輸紀錄
+    closedTradesCount := strategy.closedtrades
+
+// 建立右上角的統計圖表
+var table statPanel = table.new(position.top_right, 2, 4, bgcolor=color.new(color.black, 80), border_color=color.gray, border_width=1)
+if barstate.islast
+    // 標題列
+    table.cell(statPanel, 0, 0, "策略統計指標", text_color=color.white, bgcolor=color.new(color.blue, 70))
+    table.cell(statPanel, 1, 0, "數值", text_color=color.white, bgcolor=color.new(color.blue, 70))
+    // 總交易次數
+    table.cell(statPanel, 0, 1, "總交易次數", text_color=color.white)
+    table.cell(statPanel, 1, 1, str.tostring(closedTradesCount), text_color=color.white)
+    // 勝率
+    float winRate = closedTradesCount > 0 ? (winCount / closedTradesCount) * 100 : 0
+    table.cell(statPanel, 0, 2, "歷史勝率", text_color=color.white)
+    table.cell(statPanel, 1, 2, str.tostring(winRate, "#.##") + " %", text_color=winRate >= 50 ? color.green : color.red)
+    // 最大連續虧損 (最大連輸)
+    table.cell(statPanel, 0, 3, "最大連續虧損 (次數)", text_color=color.white)
+    table.cell(statPanel, 1, 3, str.tostring(maxLosingStreak), text_color=color.red)
