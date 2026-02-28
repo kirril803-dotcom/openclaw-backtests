@@ -283,3 +283,6 @@ SSL + ST,114.85%,N/A,N/A,N/A,N/A,17
 QStick + ST,68.06%,N/A,N/A,N/A,N/A,18
 ST + VWAP,79.04%,N/A,N/A,N/A,N/A,3
 ST + TE,118.25%,N/A,N/A,N/A,N/A,6
+ST + Chandelier,114.85%,N/A,N/A,N/A,N/A,17
+PSAR + ST,86.62%,N/A,N/A,N/A,N/A,17
+ST + KST,75.48%,N/A,N/A,N/A,N/A,15
