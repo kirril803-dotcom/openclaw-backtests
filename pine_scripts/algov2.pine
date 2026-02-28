@@ -1,0 +1,4 @@
+// algov2 - EMA 50/2 Breakout + Fixed TP
+// Buy: EMA2 > EMA50_high and close > EMA50_high
+// Sell: EMA2 < EMA50_low and close < EMA50_low
+// TP: 350 pips fixed
