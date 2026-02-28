@@ -1,0 +1,31 @@
+//@version=5
+indicator("HispanoTraderGOAT", overlay=true)
+// ── Inputs ──
+fastLen = input.int(7, title="EMA rapida")
+slowLen = input.int(25, title="EMA lenta")
+minDist = input.float(0.0, title="Filtro minimo de distancia EMA", step=0.1)
+// ── EMAs ──
+emaFast = ta.ema(close, fastLen)
+emaSlow = ta.ema(close, slowLen)
+// ── Linea unica ──
+trendLine = (emaFast + emaSlow) / 2
+// ── Tendencia ──
+isBull = emaFast > emaSlow
+trendColor = isBull ? color.green : color.red
+plot(trendLine, title="Hispano Trend Line", color=trendColor, linewidth=3)
+// ── Distancia entre EMAs ──
+emaDistance = math.abs(emaFast - emaSlow)
+validTrend = emaDistance > minDist
+// ── Cruces ──
+rawLong = ta.crossover(emaFast, emaSlow)
+rawShort = ta.crossunder(emaFast, emaSlow)
+// ── Filtro de vela ──
+bullCandle = close > open
+bearCandle = close < open
+longSignal = rawLong and validTrend and bullCandle
+shortSignal = rawShort and validTrend and bearCandle
+// ── Senales ──
+plotshape(longSignal, title="LONG", style=shape.labelup, location=location.belowbar, color=color.green, text="* LONG", textcolor=color.white, size=size.small)
+plotshape(shortSignal, title="SHORT", style=shape.labeldown, location=location.abovebar, color=color.red, text="* SHORT", textcolor=color.white, size=size.small)
+alertcondition(longSignal, title="LONG Alert", message="LONG")
+alertcondition(shortSignal, title="SHORT Alert", message="SHORT")
