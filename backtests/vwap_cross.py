@@ -1,5 +1,5 @@
 """
-ADX Trend Strength
+VWAP Strategy
 """
 import pandas as pd
 import numpy as np
@@ -8,26 +8,13 @@ import csv
 df = pd.read_csv('C:/Users/Кирилл/.openclaw/workspace/openclaw-backtests/data/btc_hourly.csv')
 print(f"Data: {len(df)} hours")
 
-# ADX
-period = 14
-df['H'] = df['High']
-df['L'] = df['Low']
-df['C'] = df['Close']
+# VWAP - reset each day
+df['Typical'] = (df['High'] + df['Low'] + df['Close']) / 3
+df['VWAP'] = df['Typical'].expanding().sum() / df['Volume'].expanding().sum() * df['Volume']
 
-df['plus_dm'] = np.where((df['H']-df['H'].shift(1)) > (df['L'].shift(1)-df['L']), 
-                          np.maximum(df['H']-df['H'].shift(1), 0), 0)
-df['minus_dm'] = np.where((df['L'].shift(1)-df['L']) > (df['H']-df['H'].shift(1)), 
-                           np.maximum(df['L'].shift(1)-df['L'], 0), 0)
-
-df['plus_di'] = 100 * (df['plus_dm'].rolling(period).mean() / df['Close'].rolling(period).std())
-df['minus_di'] = 100 * (df['minus_dm'].rolling(period).mean() / df['Close'].rolling(period).std())
-
-df['DX'] = 100 * abs(df['plus_di'] - df['minus_di']) / (df['plus_di'] + df['minus_di'])
-df['ADX'] = df['DX'].rolling(period).mean()
-
-# Buy when +DI crosses above -DI and ADX > 25
-df['Buy'] = (df['plus_di'] > df['minus_di']) & (df['plus_di'].shift(1) <= df['minus_di'].shift(1)) & (df['ADX'] > 25)
-df['Sell'] = (df['plus_di'] < df['minus_di']) & (df['plus_di'].shift(1) >= df['minus_di'].shift(1)) & (df['ADX'] > 25)
+# Buy when price crosses above VWAP, sell when crosses below
+df['Buy'] = (df['Close'] > df['VWAP']) & (df['Close'].shift(1) <= df['VWAP'].shift(1))
+df['Sell'] = (df['Close'] < df['VWAP']) & (df['Close'].shift(1) >= df['VWAP'].shift(1))
 
 def backtest(name, initial_cash=10000):
     cash = initial_cash
@@ -54,8 +41,8 @@ def backtest(name, initial_cash=10000):
     roi = (cash - initial_cash) / initial_cash * 100
     return {'name': name, 'roi': roi, 'trades': trades}
 
-r = backtest('ADX Trend')
-print(f"\n=== ADX Trend ===")
+r = backtest('VWAP Crossover')
+print(f"\n=== VWAP ===")
 print(f"ROI: {r['roi']:.2f}% | Trades: {r['trades']}")
 
 with open('C:/Users/Кирилл/.openclaw/workspace/openclaw-backtests/results.csv', 'a', newline='') as f:

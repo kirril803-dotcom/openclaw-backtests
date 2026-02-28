@@ -1,69 +1,63 @@
 """
-Strategy: Parabolic SAR
-Source: TradingView Built-in
-Logic: Buy when SAR flips to below price, sell when flips above
+Parabolic SAR Reversal
 """
 import pandas as pd
-from backtesting import Strategy
-from backtesting.lib import FractionalBacktest
+import numpy as np
+import csv
 
-data_path = 'C:/Users/Кирилл/.openclaw/workspace/openclaw-backtests/data/btc_data_clean.csv'
-data = pd.read_csv(data_path, parse_dates=['datetime'], index_col='datetime')
-data.columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+df = pd.read_csv('C:/Users/Кирилл/.openclaw/workspace/openclaw-backtests/data/btc_hourly.csv')
+print(f"Data: {len(df)} hours")
 
-def parabolic_sar(high, low, acceleration=0.02, maximum=0.2):
-    sar = pd.Series(index=high.index, dtype=float)
-    trend = pd.Series(1, index=high.index)  # 1 = up, -1 = down
-    af = acceleration
-    ep = high.iloc[0]  # extreme price
-    sar.iloc[0] = low.iloc[0]
+# Simple Parabolic SAR approximation
+af = 0.02
+af_max = 0.2
+df['SAR'] = df['Close'].copy()
+df['Trend'] = 1  # 1 = up, -1 = down
+
+for i in range(2, len(df)):
+    if df.iloc[i-1]['Trend'] == 1:
+        df.loc[df.index[i], 'SAR'] = df.iloc[i-1]['SAR'] + af * (df.iloc[i-1]['High'] - df.iloc[i-1]['SAR'])
+        if df.iloc[i]['Low'] < df.iloc[i]['SAR']:
+            df.loc[df.index[i], 'Trend'] = -1
+    else:
+        df.loc[df.index[i], 'SAR'] = df.iloc[i-1]['SAR'] + af * (df.iloc[i-1]['SAR'] - df.iloc[i-1]['Low'])
+        if df.iloc[i]['High'] > df.iloc[i]['SAR']:
+            df.loc[df.index[i], 'Trend'] = 1
+
+# Buy when SAR crosses below price, sell when SAR crosses above
+df['Buy'] = (df['SAR'] < df['Close']) & (df['SAR'].shift(1) >= df['Close'].shift(1)) & (df['Trend'] == 1)
+df['Sell'] = (df['SAR'] > df['Close']) & (df['SAR'].shift(1) <= df['Close'].shift(1)) & (df['Trend'] == -1)
+
+def backtest(name, initial_cash=10000):
+    cash = initial_cash
+    btc = 0
+    pos = None
+    trades = 0
     
-    for i in range(1, len(high)):
-        if trend.iloc[i-1] == 1:
-            sar.iloc[i] = sar.iloc[i-1] + af * (ep - sar.iloc[i-1])
-            if low.iloc[i] < sar.iloc[i]:
-                trend.iloc[i] = -1
-                sar.iloc[i] = ep
-                ep = low.iloc[i]
-                af = acceleration
-            else:
-                trend.iloc[i] = 1
-                if high.iloc[i] > ep:
-                    ep = high.iloc[i]
-                    af = min(af + acceleration, maximum)
-        else:
-            sar.iloc[i] = sar.iloc[i-1] + af * (ep - sar.iloc[i-1])
-            if high.iloc[i] > sar.iloc[i]:
-                trend.iloc[i] = 1
-                sar.iloc[i] = ep
-                ep = high.iloc[i]
-                af = acceleration
-            else:
-                trend.iloc[i] = -1
-                if low.iloc[i] < ep:
-                    ep = low.iloc[i]
-                    af = min(af + acceleration, maximum)
+    for i in range(50, len(df)):
+        price = df.iloc[i]['Close']
+        
+        if pos is None and df.iloc[i]['Buy']:
+            btc = cash / price
+            cash = 0
+            pos = 'long'
+            trades += 1
+        elif pos == 'long' and df.iloc[i]['Sell']:
+            cash = btc * price
+            pos = None
+            btc = 0
     
-    return sar, trend
-
-data['sar'], data['trend'] = parabolic_sar(data['High'], data['Low'])
-
-class Strategy(Strategy):
-    def init(self):
-        self.sar = self.I(lambda: data['sar'].values)
-        self.trend = self.I(lambda: data['trend'].values)
+    if pos:
+        cash = btc * df.iloc[-1]['Close']
     
-    def next(self):
-        if len(self.data) < 5:
-            return
-        # Buy when trend flips to bullish (1)
-        if self.trend[-1] == 1 and self.trend[-2] != 1 and not self.position:
-            self.buy(size=0.1)
-        # Sell when trend flips to bearish (-1)
-        elif self.trend[-1] == -1 and self.trend[-2] != -1 and self.position:
-            self.sell()
+    roi = (cash - initial_cash) / initial_cash * 100
+    return {'name': name, 'roi': roi, 'trades': trades}
 
-bt = FractionalBacktest(data, Strategy, cash=1000, commission=0)
-stats = bt.run()
+r = backtest('Parabolic SAR')
+print(f"\n=== Parabolic SAR ===")
+print(f"ROI: {r['roi']:.2f}% | Trades: {r['trades']}")
 
-print(f"parabolic_sar,{stats['Return [%]']:.2f}%,{stats['Max. Drawdown [%]']:.2f}%,{stats['Sharpe Ratio']:.3f},N/A,{stats['Expectancy [%]']:.2f},{stats['# Trades']}")
+with open('C:/Users/Кирилл/.openclaw/workspace/openclaw-backtests/results.csv', 'a', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow([r['name'], f"{r['roi']:.2f}%", "N/A", "N/A", "N/A", "N/A", r['trades']])
+print("Saved!")
