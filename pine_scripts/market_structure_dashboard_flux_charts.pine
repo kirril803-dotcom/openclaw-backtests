@@ -1,0 +1,7 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/ 
+// © fluxchart 
+//@version=6 
+indicator("Market Structure Dashboard | Flux Charts", overlay = true, max_boxes_count = 500, max_labels_count = 500, max_bars_back = 1000) 
+
+// Full code truncated - 1750 lines saved
+// See TradingView for complete source
