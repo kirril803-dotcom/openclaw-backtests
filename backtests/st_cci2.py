@@ -1,5 +1,5 @@
 """
-Supertrend + Commodity Channel Index
+Supertrend + CCI
 """
 import pandas as pd
 import numpy as np
@@ -11,9 +11,9 @@ print(f"Data: {len(df)} hours")
 # CCI
 period = 20
 df['TP'] = (df['High'] + df['Low'] + df['Close']) / 3
-df['SMA_TP'] = df['TP'].rolling(period).mean()
+df['SMA'] = df['TP'].rolling(period).mean()
 df['MAD'] = df['TP'].rolling(period).apply(lambda x: np.abs(x - x.mean()).mean(), raw=True)
-df['CCI'] = (df['TP'] - df['SMA_TP']) / (0.015 * df['MAD'])
+df['CCI'] = (df['TP'] - df['SMA']) / (0.015 * df['MAD'])
 
 # ATR for Supertrend
 st_period = 10
@@ -24,14 +24,14 @@ df['ATR'] = df['TR'].rolling(st_period).mean()
 
 # Supertrend
 multiplier = 3
-df['Upper'] = (df['High'] + df['Low']) / 2 + multiplier * df['ATR']
-df['Lower'] = (df['High'] + df['Low']) / 2 - multiplier * df['ATR']
+df['ST_Upper'] = (df['High'] + df['Low']) / 2 + multiplier * df['ATR']
+df['ST_Lower'] = (df['High'] + df['Low']) / 2 - multiplier * df['ATR']
 
 df['ST_dir'] = 'up'
 for i in range(1, len(df)):
-    if df.iloc[i]['Close'] > df.iloc[i-1]['Upper']:
+    if df.iloc[i]['Close'] > df.iloc[i-1]['ST_Upper']:
         df.loc[df.index[i], 'ST_dir'] = 'up'
-    elif df.iloc[i]['Close'] < df.iloc[i-1]['Lower']:
+    elif df.iloc[i]['Close'] < df.iloc[i-1]['ST_Lower']:
         df.loc[df.index[i], 'ST_dir'] = 'down'
     else:
         df.loc[df.index[i], 'ST_dir'] = df.iloc[i-1]['ST_dir']
@@ -65,8 +65,8 @@ def backtest(name, initial_cash=10000):
     roi = (cash - initial_cash) / initial_cash * 100
     return {'name': name, 'roi': roi, 'trades': trades}
 
-r = backtest('ST + CCI2')
-print(f"\n=== ST + CCI2 ===")
+r = backtest('ST + CCI')
+print(f"\n=== ST + CCI ===")
 print(f"ROI: {r['roi']:.2f}% | Trades: {r['trades']}")
 
 with open('C:/Users/Кирилл/.openclaw/workspace/openclaw-backtests/results.csv', 'a', newline='') as f:
